@@ -1,0 +1,46 @@
+{
+  "name": "formatarc",
+  "version": "0.1.0",
+  "description": "Convert JSON, YAML, and CSV from the terminal. Browser-based version at formatarc.com.",
+  "keywords": [
+    "json",
+    "yaml",
+    "csv",
+    "formatter",
+    "converter",
+    "json-formatter",
+    "yaml-to-json",
+    "csv-to-json",
+    "cli"
+  ],
+  "author": "FormatArc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m-naoki-m/formatarc.git"
+  },
+  "homepage": "https://formatarc.com",
+  "type": "module",
+  "main": "./dist/converter.js",
+  "types": "./dist/converter.d.ts",
+  "bin": {
+    "formatarc": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "papaparse": "^5.5.2",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.15",
+    "typescript": "^5.8.3"
+  }
+}
