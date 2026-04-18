@@ -12,15 +12,21 @@ Usage:
   cat file | formatarc <tool>
 
 Tools:
-  json-format   Pretty-print JSON
-  yaml-to-json  Convert YAML to JSON
-  json-to-yaml  Convert JSON to YAML
-  csv-to-json   Convert CSV to JSON
+  json-format       Pretty-print JSON
+  yaml-to-json      Convert YAML to JSON
+  json-to-yaml      Convert JSON to YAML
+  csv-to-json       Convert CSV to JSON
+  csv-to-markdown   Convert CSV to a Markdown table
+  markdown-to-html  Convert Markdown to HTML
+  html-to-markdown  Convert HTML to Markdown
 
 Examples:
   formatarc json-format '{"a":1}'
   formatarc yaml-to-json config.yaml
   cat data.csv | formatarc csv-to-json
+  cat table.csv | formatarc csv-to-markdown
+  cat README.md | formatarc markdown-to-html
+  cat page.html | formatarc html-to-markdown
 
 Web version: https://formatarc.com
 `.trim();

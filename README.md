@@ -1,6 +1,6 @@
 # formatarc
 
-Convert JSON, YAML, and CSV from the terminal. No config, no dependencies to manage — just pipe or pass your data.
+Convert JSON, YAML, CSV, Markdown, and HTML from the terminal. No config, no dependencies to manage — just pipe or pass your data.
 
 **Web version → [formatarc.com](https://formatarc.com)**
 
@@ -31,6 +31,9 @@ cat file | formatarc <tool>
 | `yaml-to-json` | Convert YAML to JSON |
 | `json-to-yaml` | Convert JSON to YAML |
 | `csv-to-json` | Convert CSV (with header row) to JSON |
+| `csv-to-markdown` | Convert CSV to a Markdown (GFM) table |
+| `markdown-to-html` | Convert Markdown to HTML |
+| `html-to-markdown` | Convert HTML to Markdown |
 
 ### Examples
 
@@ -69,6 +72,24 @@ Convert CSV from stdin:
 cat users.csv | formatarc csv-to-json
 ```
 
+Convert CSV to a Markdown table:
+
+```bash
+cat users.csv | formatarc csv-to-markdown
+```
+
+Render Markdown as HTML:
+
+```bash
+cat README.md | formatarc markdown-to-html > README.html
+```
+
+Strip HTML to Markdown (handy for piping web pages into LLMs):
+
+```bash
+curl -s https://example.com | formatarc html-to-markdown
+```
+
 ## Programmatic API
 
 ```typescript
@@ -95,6 +116,7 @@ For a browser-based experience with no signup and no data upload:
 **[formatarc.com](https://formatarc.com)**
 
 - JSON Formatter, YAML ↔ JSON, CSV → JSON
+- CSV → Markdown, Markdown ↔ HTML
 - Runs entirely in the browser
 - Multilingual (English / Japanese)
 
