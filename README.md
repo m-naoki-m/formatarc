@@ -1,8 +1,26 @@
 # formatarc
 
-Convert JSON, YAML, CSV, Markdown, and HTML from the terminal. No config, no dependencies to manage — just pipe or pass your data.
+Convert JSON, YAML, CSV, Markdown, and HTML from the terminal — your data never leaves your machine. No config, no telemetry, no upload.
 
-**Web version → [formatarc.com](https://formatarc.com)**
+[![npm version](https://img.shields.io/npm/v/formatarc.svg)](https://www.npmjs.com/package/formatarc)
+[![license: MIT](https://img.shields.io/npm/l/formatarc.svg)](https://github.com/m-naoki-m/formatarc/blob/main/LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/formatarc.svg)](https://www.npmjs.com/package/formatarc)
+
+**Web version → [formatarc.com](https://formatarc.com)** — the same conversions, 100% in your browser, no signup.
+
+## Why formatarc?
+
+Most "online JSON / YAML / CSV converters" send the data you paste to a server. In November 2025, security firm watchTowr disclosed that two popular formatter sites (jsonformatter.org and codebeautify.org) had publicly exposed **over 80,000 saved submissions (5 GB+)** through a predictable "Recent Links" URL — including Active Directory credentials, cloud access keys, private keys, CI/CD secrets, JWTs, and full AWS Secrets Manager exports from government, banking, healthcare, and aerospace organizations. ([watchTowr report](https://labs.watchtowr.com/stop-putting-your-passwords-into-random-websites-yes-seriously-you-are-the-problem/))
+
+formatarc is built so that can't happen. The CLI runs entirely on your machine, and the [web version](https://formatarc.com) runs entirely in your browser — no upload, no logging, no telemetry, no account.
+
+| | formatarc CLI | formatarc web | Typical online converter | jq / yq / pandoc |
+|---|:---:|:---:|:---:|:---:|
+| Data stays local | ✅ | ✅ | ❌ | ✅ |
+| No signup / no upload | ✅ | ✅ | ⚠️ | ✅ |
+| JSON + YAML + CSV + Markdown + HTML in one tool | ✅ | ✅ | ⚠️ | ❌ |
+| Works offline | ✅ | after first load | ❌ | ✅ |
+| Single install | ✅ | n/a | n/a | ❌ |
 
 ## Install
 
