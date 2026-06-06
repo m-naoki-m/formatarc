@@ -14,6 +14,8 @@ Most "online JSON / YAML / CSV converters" send the data you paste to a server. 
 
 formatarc is built so that can't happen. The CLI runs entirely on your machine, and the [web version](https://formatarc.com) runs entirely in your browser — no upload, no logging, no telemetry, no account.
 
+It is not only paste-to-a-server sites, either: in early 2026, a widely used JSON formatter browser extension was reported (on Hacker News and dev.to) to add third-party tracking and checkout-page injection after moving to a closed-source model — a reminder that an installed extension can change behaviour through an automatic update. Background on both risks: [are online converters safe?](https://formatarc.com/en/blog/online-converter-safety/) and [picking a JSON formatter Chrome extension by privacy and permissions](https://formatarc.com/en/blog/chrome-extension-json-formatter/).
+
 | | formatarc CLI | formatarc web | Typical online converter | jq / yq / pandoc |
 |---|:---:|:---:|:---:|:---:|
 | Data stays local | ✅ | ✅ | ❌ | ✅ |
@@ -136,7 +138,9 @@ For a browser-based experience with no signup and no data upload:
 - JSON Formatter, YAML ↔ JSON, CSV → JSON
 - CSV → Markdown, Markdown ↔ HTML
 - Runs entirely in the browser
-- Multilingual (English / Japanese)
+- Multilingual (English, Japanese, Spanish, Portuguese)
+
+There is also a [Chrome extension](https://formatarc.com/en/blog/chrome-extension-json-formatter/) for popup and right-click conversion — same browser-side processing, no upload.
 
 ## License
 
