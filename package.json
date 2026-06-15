@@ -1,6 +1,6 @@
 {
   "name": "formatarc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Convert JSON, YAML, CSV, Markdown, and HTML from the terminal. Browser-based version at formatarc.com.",
   "keywords": [
     "json",

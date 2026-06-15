@@ -159,6 +159,35 @@ const turndownService = (() => {
   return service;
 })();
 
+// Locate a trailing comma (a comma whose next non-whitespace character is `}`
+// or `]`). String-aware so commas/brackets inside string values are ignored.
+// Returns the comma's 1-based line, or null if there is none.
+function findTrailingCommaLine(input: string): number | null {
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === ",") {
+      let j = i + 1;
+      while (j < input.length && /\s/.test(input[j])) j++;
+      if (j < input.length && (input[j] === "}" || input[j] === "]")) {
+        return input.slice(0, i + 1).split("\n").length;
+      }
+    }
+  }
+  return null;
+}
+
 function formatError(err: unknown, input: string, tool: Tool): string {
   if (err instanceof YAML.YAMLParseError) {
     const line = err.linePos?.[0]?.line;
@@ -166,6 +195,13 @@ function formatError(err: unknown, input: string, tool: Tool): string {
   }
 
   if (err instanceof Error && err.name === "SyntaxError") {
+    // Trailing comma is the most common JSON mistake, and parsers report it at
+    // the *following* bracket (often on the next line), not at the comma. Find
+    // the comma ourselves and point at its line.
+    const trailingCommaLine = findTrailingCommaLine(input);
+    if (trailingCommaLine !== null) {
+      return `Invalid JSON: remove the trailing comma on line ${trailingCommaLine}.`;
+    }
     const match = err.message.match(/position\s+(\d+)/i);
     if (match) {
       const line = input.slice(0, Number(match[1])).split("\n").length;
