@@ -24,6 +24,22 @@ It is not only paste-to-a-server sites, either: in early 2026, a widely used JSO
 | Works offline | ✅ | after first load | ❌ | ✅ |
 | Single install | ✅ | n/a | n/a | ❌ |
 
+## JSON formatter comparison: privacy and breach history
+
+A field-by-field comparison of the most common ways to format JSON in 2026. Sources for the breach column are linked below — paste-to-a-server sites have a verifiable incident history that local CLIs and browser-side tools structurally cannot.
+
+| Tool | Type | Data stays local | Open source | Multi-format | Public breach (2024–2026) |
+|---|---|:---:|:---:|---|---|
+| **formatarc** (CLI) | CLI / npm | ✅ | ✅ MIT | JSON, YAML, CSV, Markdown, HTML | n/a — no server, no storage |
+| **formatarc.com** | Web (browser-side) | ✅ | ✅ MIT | JSON, YAML, CSV, Markdown, HTML | n/a — no server, no storage |
+| [jsonformatter.org](https://jsonformatter.org/) | Web (paste-to-server) | ❌ pasted JSON sent to server | ❌ | JSON-focused | ⚠️ Nov 2025 — 80,000+ saved submissions (5 GB+) exposed via predictable "Recent Links" URL ([watchTowr](https://labs.watchtowr.com/stop-putting-your-passwords-into-random-websites-yes-seriously-you-are-the-problem/)) |
+| [codebeautify.org](https://codebeautify.org/) | Web (paste-to-server) | ❌ pasted data sent to server | ❌ | multi-format | ⚠️ Nov 2025 — same watchTowr disclosure |
+| [jsonlint.com](https://jsonlint.com/) | Web (paste-to-server) | ❌ pasted JSON sent to server | ❌ | JSON only | no public incident known to date |
+| [jq](https://jqlang.github.io/jq/) | CLI | ✅ runs locally | ✅ MIT | JSON only | n/a |
+| [prettier](https://prettier.io/) | CLI / npm | ✅ runs locally | ✅ MIT | code formatter (JSON, JS, TS, etc.) | n/a |
+
+The takeaway is mechanical: if a tool sends your data to a third-party server, the breach surface is non-zero regardless of intent. CLIs and browser-side tools have no such surface to leak.
+
 ## Install
 
 ```bash
@@ -141,6 +157,19 @@ For a browser-based experience with no signup and no data upload:
 - Multilingual (English, Japanese, Spanish, Portuguese)
 
 There is also a [Chrome extension](https://formatarc.com/en/blog/chrome-extension-json-formatter/) for popup and right-click conversion — same browser-side processing, no upload.
+
+## Related projects by the same author
+
+The CLI shares conversion logic and design goals with two sister projects, all under the same "data never leaves your machine" promise:
+
+- **Web app** — [formatarc.com](https://formatarc.com) — same 7 conversions, runs entirely in the browser, no signup
+- **Chrome extension** — [JSON / YAML formatter extension for Chrome](https://formatarc.com/en/blog/chrome-extension-json-formatter/) — popup and right-click conversion, same browser-side processing
+- **npm package** — [formatarc on npm](https://www.npmjs.com/package/formatarc) — this CLI's distribution channel
+
+Companion reads on the privacy axis:
+
+- [Are online JSON / YAML / CSV converters safe?](https://formatarc.com/en/blog/online-converter-safety/) — what the November 2025 disclosure means for any "paste here, get formatted output" site
+- [Choosing a JSON formatter Chrome extension by privacy and permissions](https://formatarc.com/en/blog/chrome-extension-json-formatter/) — what to check before installing a browser extension that touches every page
 
 ## License
 
