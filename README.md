@@ -126,6 +126,37 @@ Strip HTML to Markdown (handy for piping web pages into LLMs):
 curl -s https://example.com | formatarc html-to-markdown
 ```
 
+## Validate data in CI and git hooks
+
+Every command exits `0` on success and `1` on failure, writing the result to **stdout** and any error to **stderr**. Errors are line-numbered, so a broken file points you straight at the problem instead of a cryptic parser dump:
+
+```bash
+$ echo '{"a":1,}' | formatarc json-format
+Invalid JSON: remove the trailing comma on line 1.
+$ echo $?
+1
+```
+
+That makes it a drop-in validator for pipelines and pre-commit hooks — and, like everything else here, the data never leaves the runner.
+
+Fail a GitHub Actions build on malformed JSON or YAML:
+
+```yaml
+- name: Validate config files
+  run: |
+    npx formatarc json-format config.json > /dev/null
+    npx formatarc yaml-to-json .github/settings.yaml > /dev/null
+```
+
+Block a commit that stages invalid JSON (`.git/hooks/pre-commit`):
+
+```sh
+#!/bin/sh
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep '\.json$'); do
+  npx formatarc json-format "$f" > /dev/null || { echo "Invalid JSON in $f"; exit 1; }
+done
+```
+
 ## Programmatic API
 
 ```typescript
