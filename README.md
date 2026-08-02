@@ -1,6 +1,6 @@
 # formatarc
 
-Convert JSON, YAML, CSV, Markdown, and HTML from the terminal — your data never leaves your machine. No config, no telemetry, no upload.
+Convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal — your data never leaves your machine. No config, no telemetry, no upload.
 
 [![npm version](https://img.shields.io/npm/v/formatarc.svg)](https://www.npmjs.com/package/formatarc)
 [![license: MIT](https://img.shields.io/npm/l/formatarc.svg)](https://github.com/m-naoki-m/formatarc/blob/main/LICENSE)
@@ -70,6 +70,27 @@ cat file | formatarc <tool>
 | `csv-to-markdown` | Convert CSV to a Markdown (GFM) table |
 | `markdown-to-html` | Convert Markdown to HTML |
 | `html-to-markdown` | Convert HTML to Markdown |
+| `pdf-to-markdown` | Extract the text of a PDF as Markdown |
+
+#### About `pdf-to-markdown`
+
+PDF is the one tool here that reads a file rather than text, and the one with
+real limits. They are worth knowing before you pipe it into anything:
+
+- **Works on PDFs that contain text.** A scanned PDF stores each page as an
+  image with no text layer, so it cannot be converted. The command says so and
+  exits non-zero instead of guessing.
+- **Tables can come out misaligned.** Most PDFs do not store a table as a
+  table — the structure has to be inferred from lines and text positions. When
+  a PDF contains tables, the command prints a note on stderr. Check the result
+  against the original.
+- **Formulas are not supported.**
+- When the text layer cannot be read reliably (some encrypted PDFs, some CJK
+  CFF fonts), it falls back to plain text extraction and tells you on stderr.
+  Headings and tables are not generated in that case.
+
+Notes go to stderr, so `formatarc pdf-to-markdown in.pdf > out.md` still gives
+you clean Markdown.
 
 ### Examples
 
@@ -126,6 +147,14 @@ Strip HTML to Markdown (handy for piping web pages into LLMs):
 curl -s https://example.com | formatarc html-to-markdown
 ```
 
+Extract the text of a PDF as Markdown:
+
+```bash
+formatarc pdf-to-markdown report.pdf
+formatarc pdf-to-markdown report.pdf > report.md
+cat report.pdf | formatarc pdf-to-markdown
+```
+
 ## Validate data in CI and git hooks
 
 Every command exits `0` on success and `1` on failure, writing the result to **stdout** and any error to **stderr**. Errors are line-numbered, so a broken file points you straight at the problem instead of a cryptic parser dump:
@@ -175,6 +204,27 @@ Returns `{ output: string, error: string }`.
 
 - `output` — the converted result (empty string on error)
 - `error` — error message (empty string on success)
+
+### `convertPdf(bytes)`
+
+PDF input is binary, so it does not go through `convert()`. Returns a promise.
+
+```typescript
+import { convertPdf } from "formatarc";
+import { readFileSync } from "node:fs";
+
+const result = await convertPdf(new Uint8Array(readFileSync("report.pdf")));
+if (result.error) throw new Error(result.error);
+if (result.route === "refused") {
+  // scanned PDF — no text layer, OCR would be required
+}
+console.log(result.markdown);
+```
+
+- `route` — `"inspector"` (normal), `"fallback"` (text-only, the text layer was
+  unreliable), or `"refused"` (scanned PDF, nothing was converted)
+- `hasTables` — the PDF contains tables, so the result needs checking
+- `pageCount`, `ocrPages`, `pdfType`, `error`
 
 ## Web Version
 

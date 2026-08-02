@@ -31,6 +31,21 @@ export function isValidTool(value: string): value is Tool {
   return TOOLS.includes(value as Tool);
 }
 
+/**
+ * PDF → Markdown だけは入力がバイナリで、文字列を受け取る convert() に乗らない。
+ * Tool 型に混ぜると「型は通るが実行できない」組み合わせができるので別に持つ。
+ * 実装は ./pdf.ts の convertPdf()。
+ */
+export const PDF_TOOL = "pdf-to-markdown";
+
+// バイナリ入力の変換は ./pdf.ts にあるが、パッケージの入口は converter.js なので
+// ここから再 export する (import { convertPdf } from "formatarc" で使えるように)。
+export { convertPdf, type PdfResult, type PdfRoute } from "./pdf.js";
+
+export function isPdfTool(value: string): boolean {
+  return value === PDF_TOOL;
+}
+
 export function convert(tool: Tool, input: string): ConvertResult {
   if (!input.trim()) {
     return { output: "", error: "Input is empty." };
