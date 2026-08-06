@@ -85,9 +85,10 @@ real limits. They are worth knowing before you pipe it into anything:
   a PDF contains tables, the command prints a note on stderr. Check the result
   against the original.
 - **Formulas are not supported.**
-- When the text layer cannot be read reliably (some encrypted PDFs, some CJK
-  CFF fonts), it falls back to plain text extraction and tells you on stderr.
-  Headings and tables are not generated in that case.
+- When the text layer cannot be read reliably (some CJK CFF fonts, where the
+  extractor mistakes Adobe-Japan1 CIDs for Unicode codepoints), it falls back to
+  plain text extraction and tells you on stderr. Headings and tables are not
+  generated in that case.
 
 Notes go to stderr, so `formatarc pdf-to-markdown in.pdf > out.md` still gives
 you clean Markdown.
