@@ -56,6 +56,31 @@ type InspectorModule = {
 
 let inspector: InspectorModule | null = null;
 
+/**
+ * 出力が実際に壊れているかを判定する。
+ *
+ * 2 つの症状を見る。片方だけでは足りない。
+ *   - U+FFFD への置換。デコードできなかった文字がこれになる
+ *   - 文書と無関係なスクリプトの混入。CID をそのまま Unicode として出力すると
+ *     「令和」がタミル文字の U+0BE7 U+0FF4 になるといった化け方をする。この場合
+ *     U+FFFD は出ないので、置換率だけを見ていると素通りする
+ *
+ * 混入率に上限を置いているのは、タイ語やチベット語で書かれた PDF を誤って
+ * 壊れていると判定しないため。その場合は文書全体がそのスクリプトになる。
+ */
+function looksGarbled(markdown: string): boolean {
+  if (!markdown.length) return false;
+
+  const replacement = (markdown.match(/\uFFFD/g) ?? []).length / markdown.length;
+  if (replacement > 0.005) return true;
+
+  const stray =
+    (markdown.match(
+      /[\u0900-\u097F\u0A00-\u0A7F\u0B80-\u0BFF\u0C00-\u0C7F\u0D00-\u0D7F\u0E00-\u0E7F\u0F00-\u0FFF\u10A0-\u10FF\u1200-\u137F\u1400-\u167F\u1780-\u17FF]/g
+    ) ?? []).length / markdown.length;
+  return stray > 0.005 && stray < 0.5;
+}
+
 async function loadInspector(): Promise<InspectorModule> {
   if (inspector) return inspector;
   const mod = (await import("@firecrawl/pdf-inspector-wasm")) as unknown as InspectorModule;
@@ -150,8 +175,12 @@ export async function convertPdf(bytes: Uint8Array): Promise<PdfResult> {
     return { ...empty, error: pdfErrorMessage(error) };
   }
 
+  // hasEncodingIssues は過検出することがある。日本銀行の金融システムレポート
+  // (113,550 文字) は全く化けていないのにフラグが立ち、そのまま落とすと
+  // 正しく取れている見出しと表を捨ててしまう。実際に壊れている証拠がある
+  // ときだけフォールバックする。
   const markdown = result.markdown ?? "";
-  if (!result.hasEncodingIssues && markdown.length > 0) {
+  if (markdown.length > 0 && !(result.hasEncodingIssues && looksGarbled(markdown))) {
     return {
       ...empty,
       route: "inspector",
