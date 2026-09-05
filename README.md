@@ -1,6 +1,6 @@
 # formatarc
 
-Convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal — your data never leaves your machine. No config, no telemetry, no upload.
+Convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal, and check whether a Qiita or Zenn article survives the move to the other platform — your data never leaves your machine. No config, no telemetry, no upload.
 
 [![npm version](https://img.shields.io/npm/v/formatarc.svg)](https://www.npmjs.com/package/formatarc)
 [![license: MIT](https://img.shields.io/npm/l/formatarc.svg)](https://github.com/m-naoki-m/formatarc/blob/main/LICENSE)
@@ -67,10 +67,14 @@ cat file | formatarc <tool>
 | `yaml-to-json` | Convert YAML to JSON |
 | `json-to-yaml` | Convert JSON to YAML |
 | `csv-to-json` | Convert CSV (with header row) to JSON |
+| `json-to-csv` | Convert JSON objects to CSV (nested keys are flattened) |
 | `csv-to-markdown` | Convert CSV to a Markdown (GFM) table |
+| `markdown-to-csv` | Convert Markdown (GFM) tables to CSV |
 | `markdown-to-html` | Convert Markdown to HTML |
 | `html-to-markdown` | Convert HTML to Markdown |
 | `pdf-to-markdown` | Extract the text of a PDF as Markdown |
+| `qiita-to-zenn` | Check a Qiita article for Zenn compatibility |
+| `zenn-to-qiita` | Check a Zenn article for Qiita compatibility |
 
 #### About `pdf-to-markdown`
 
@@ -92,6 +96,26 @@ real limits. They are worth knowing before you pipe it into anything:
 
 Notes go to stderr, so `formatarc pdf-to-markdown in.pdf > out.md` still gives
 you clean Markdown.
+
+#### About `qiita-to-zenn` / `zenn-to-qiita`
+
+These two do not convert an article and hand it back as done. They report every
+syntax difference and convert only the ones that convert without losing
+meaning, because most of them do not: of the 74 differences in the rule table,
+37 convert deterministically, 14 need a decision only the author can make, and
+23 have no counterpart at all. The table was compiled by surveying both
+platforms on 2026-08-04 and is shared with the web version, which lists the
+same counts:
+[formatarc.com/en/qiita-zenn-compat](https://formatarc.com/en/qiita-zenn-compat/).
+
+The trap worth naming: Zenn renders Markdown with `html: false`, so raw HTML
+that Qiita accepts — `<details>`, `<img width>`, `<dl>` — reaches the reader as
+escaped tags. Nothing throws. The article just looks broken after it is
+published. 21 rules are that shape, which is why the report exists at all.
+
+The converted Markdown goes to **stdout** and the report to **stderr**, so
+`formatarc qiita-to-zenn article.md > converted.md` gives you a clean article
+and leaves the report on screen.
 
 ### Examples
 
@@ -130,10 +154,22 @@ Convert CSV from stdin:
 cat users.csv | formatarc csv-to-json
 ```
 
+Convert JSON to CSV (nested objects become dotted column names):
+
+```bash
+cat users.json | formatarc json-to-csv
+```
+
 Convert CSV to a Markdown table:
 
 ```bash
 cat users.csv | formatarc csv-to-markdown
+```
+
+Pull the tables out of a Markdown document as CSV:
+
+```bash
+cat report.md | formatarc markdown-to-csv
 ```
 
 Render Markdown as HTML:
@@ -156,6 +192,12 @@ formatarc pdf-to-markdown report.pdf > report.md
 cat report.pdf | formatarc pdf-to-markdown
 ```
 
+Check a Qiita article before moving it to Zenn:
+
+```bash
+formatarc qiita-to-zenn article.md > zenn-draft.md
+```
+
 ## Validate data in CI and git hooks
 
 Every command exits `0` on success and `1` on failure, writing the result to **stdout** and any error to **stderr**. Errors are line-numbered, so a broken file points you straight at the problem instead of a cryptic parser dump:
@@ -176,6 +218,16 @@ Fail a GitHub Actions build on malformed JSON or YAML:
   run: |
     npx formatarc json-format config.json > /dev/null
     npx formatarc yaml-to-json .github/settings.yaml > /dev/null
+```
+
+Gate a cross-posting pipeline on article compatibility. `qiita-to-zenn` and
+`zenn-to-qiita` exit `1` when the article carries anything that breaks
+silently, needs a decision, or has no counterpart on the other platform, and
+`0` when every difference converted losslessly:
+
+```yaml
+- name: Check the article survives the move to Zenn
+  run: npx formatarc qiita-to-zenn public/my-article.md > /dev/null
 ```
 
 Block a commit that stages invalid JSON (`.git/hooks/pre-commit`):
@@ -210,8 +262,12 @@ Returns `{ output: string, error: string }`.
 
 PDF input is binary, so it does not go through `convert()`. Returns a promise.
 
+It ships from `formatarc/pdf` rather than the package root: the implementation
+imports `node:fs` and friends, and re-exporting it from the root broke bundlers
+targeting the browser (the Chrome extension builds from this same package).
+
 ```typescript
-import { convertPdf } from "formatarc";
+import { convertPdf } from "formatarc/pdf";
 import { readFileSync } from "node:fs";
 
 const result = await convertPdf(new Uint8Array(readFileSync("report.pdf")));
@@ -227,16 +283,36 @@ console.log(result.markdown);
 - `hasTables` — the PDF contains tables, so the result needs checking
 - `pageCount`, `ocrPages`, `pdfType`, `error`
 
+### `analyzeQiitaZenn(input, direction, locale)`
+
+Ships from `formatarc/qiita-zenn` — it carries the rule table, which the string
+conversions have no reason to load.
+
+```typescript
+import { analyzeQiitaZenn } from "formatarc/qiita-zenn";
+
+const result = analyzeQiitaZenn(markdown, "qiita-to-zenn", "en");
+console.log(result.output);   // the converted article
+console.log(result.findings); // every difference, with line numbers
+console.log(result.counts);   // { total, breaksSilently, deterministic, lossy, unsupported }
+```
+
+- `direction` — `"qiita-to-zenn"` or `"zenn-to-qiita"`
+- `locale` — `"en"` or `"ja"`; picks the language of the findings
+- a fourth argument takes the author's decisions (`{ [ruleId]: optionValue }`).
+  Without it, differences that need a decision are reported but left unconverted
+
 ## Web Version
 
 For a browser-based experience with no signup and no data upload:
 
 **[formatarc.com](https://formatarc.com)**
 
-- JSON Formatter, YAML ↔ JSON, CSV → JSON
-- CSV → Markdown, Markdown ↔ HTML
+- JSON Formatter, YAML ↔ JSON, CSV ↔ JSON
+- CSV ↔ Markdown, Markdown ↔ HTML, PDF → Markdown
+- Qiita / Zenn compatibility check
 - Runs entirely in the browser
-- Multilingual (English, Japanese, Spanish, Portuguese)
+- Multilingual (English, Japanese, Spanish, Portuguese, Korean, Chinese)
 
 There is also a [Chrome extension](https://formatarc.com/en/blog/chrome-extension-json-formatter/) for popup and right-click conversion — same browser-side processing, no upload.
 
@@ -244,7 +320,7 @@ There is also a [Chrome extension](https://formatarc.com/en/blog/chrome-extensio
 
 The CLI shares conversion logic and design goals with two sister projects, all under the same "data never leaves your machine" promise:
 
-- **Web app** — [formatarc.com](https://formatarc.com) — same 7 conversions, runs entirely in the browser, no signup
+- **Web app** — [formatarc.com](https://formatarc.com) — the same conversions, runs entirely in the browser, no signup
 - **Chrome extension** — [JSON / YAML formatter extension for Chrome](https://formatarc.com/en/blog/chrome-extension-json-formatter/) — popup and right-click conversion, same browser-side processing
 - **npm package** — [formatarc on npm](https://www.npmjs.com/package/formatarc) — this CLI's distribution channel
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { readFileSync, existsSync } from "fs";
-import { convert, isPdfTool, isValidTool, PDF_TOOL, type Tool } from "./converter.js";
+import { convert, isPdfTool, isQzTool, isValidTool, PDF_TOOL, type Tool } from "./converter.js";
 import { convertPdf } from "./pdf.js";
+import { analyzeQiitaZenn, type QzDirection, type QzFinding } from "./qiita-zenn.js";
 
 const USAGE = `
 formatarc — convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal
@@ -17,26 +18,42 @@ Tools:
   yaml-to-json      Convert YAML to JSON
   json-to-yaml      Convert JSON to YAML
   csv-to-json       Convert CSV to JSON
+  json-to-csv       Convert JSON (objects) to CSV
   csv-to-markdown   Convert CSV to a Markdown table
+  markdown-to-csv   Convert Markdown tables to CSV
   markdown-to-html  Convert Markdown to HTML
   html-to-markdown  Convert HTML to Markdown
   pdf-to-markdown   Extract the text of a PDF as Markdown
+  qiita-to-zenn     Check a Qiita article for Zenn compatibility
+  zenn-to-qiita     Check a Zenn article for Qiita compatibility
 
 Examples:
   formatarc json-format '{"a":1}'
   formatarc yaml-to-json config.yaml
   cat data.csv | formatarc csv-to-json
+  cat data.json | formatarc json-to-csv
   cat table.csv | formatarc csv-to-markdown
+  cat table.md | formatarc markdown-to-csv
   cat README.md | formatarc markdown-to-html
   cat page.html | formatarc html-to-markdown
   formatarc pdf-to-markdown report.pdf
   cat report.pdf | formatarc pdf-to-markdown
+  formatarc qiita-to-zenn article.md > converted.md
+  formatarc zenn-to-qiita article.md > /dev/null
 
 Notes on pdf-to-markdown:
   Works on PDFs that contain text. A scanned PDF holds no text and cannot be
   converted — the command says so instead of guessing. Tables can come out
   misaligned when the PDF carries no table structure, so check the result
   against the original. Formulas are not supported.
+
+Notes on qiita-to-zenn / zenn-to-qiita:
+  Reports every syntax difference and converts only the ones that convert
+  without losing meaning. The converted Markdown goes to stdout; the report
+  goes to stderr. Exits 1 when the article carries anything that breaks
+  silently, needs a human decision, or has no counterpart on the other
+  platform — so it can gate a publishing pipeline. Exits 0 when the only
+  findings were converted losslessly.
 
 Web version: https://formatarc.com
 `.trim();
@@ -107,6 +124,52 @@ async function runPdf(fileArg: string | undefined): Promise<void> {
   process.stdout.write(result.markdown + "\n");
 }
 
+/**
+ * Qiita / Zenn の互換チェック。
+ *
+ * stdout は変換後の Markdown だけにして、報告は stderr へ回す。そうしないと
+ * `formatarc qiita-to-zenn article.md > out.md` で診断文が記事に混ざる。
+ *
+ * 意味を選ばないと変換できないルール (lossy) は、変換せずに報告だけする。
+ * 対話できない CLI が著者の代わりに意味を選ぶわけにいかないため、選択肢を
+ * 出したうえで終了コードを 1 にして人の目に戻す。
+ */
+function runQiitaZenn(direction: QzDirection, input: string): void {
+  const result = analyzeQiitaZenn(input, direction, "en");
+
+  if (result.error) fail(result.error);
+
+  if (result.findings.length > 0) {
+    const label: Record<QzFinding["severity"], string> = {
+      "breaks-silently": "breaks silently",
+      degrades: "degrades",
+      info: "info",
+    };
+    console.error(`${result.counts.total} finding(s):`);
+    for (const f of result.findings) {
+      const where = f.line > 0 ? `line ${f.line}` : "frontmatter";
+      console.error(`  ${where}: [${label[f.severity]}] ${f.feature} — ${f.detail}`);
+      if (f.excerpt) console.error(`    ${f.excerpt}`);
+      if (f.choice) {
+        const options = f.choice.options.map((o) => o.value).join(" | ");
+        console.error(`    choice needed: ${f.choice.prompt} (${options})`);
+      }
+    }
+    console.error(
+      `converted: ${result.counts.deterministic}, needs a decision: ` +
+        `${result.counts.lossy}, no counterpart: ${result.counts.unsupported}, ` +
+        `breaks silently: ${result.counts.breaksSilently}`,
+    );
+  }
+
+  process.stdout.write(result.output + "\n");
+
+  // 自動で解決できなかったものが 1 件でもあれば非ゼロ。deterministic だけなら 0。
+  const unresolved =
+    result.counts.lossy + result.counts.unsupported + result.counts.breaksSilently;
+  if (unresolved > 0) process.exit(1);
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -122,12 +185,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!isValidTool(toolArg)) {
+  if (!isValidTool(toolArg) && !isQzTool(toolArg)) {
     console.error(`Unknown tool: ${toolArg}\n`);
     fail(USAGE);
   }
 
-  const tool: Tool = toolArg;
   let input: string;
 
   if (args[1]) {
@@ -144,7 +206,12 @@ async function main(): Promise<void> {
     fail(USAGE);
   }
 
-  const result = convert(tool, input);
+  if (isQzTool(toolArg)) {
+    runQiitaZenn(toolArg as QzDirection, input);
+    return;
+  }
+
+  const result = convert(toolArg as Tool, input);
 
   if (result.error) fail(result.error);
 
