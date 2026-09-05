@@ -267,7 +267,7 @@ imports `node:fs` and friends, and re-exporting it from the root broke bundlers
 targeting the browser (the Chrome extension builds from this same package).
 
 ```typescript
-import { convertPdf } from "formatarc/pdf";
+import { convertPdf, type PdfResult, type PdfRoute } from "formatarc/pdf";
 import { readFileSync } from "node:fs";
 
 const result = await convertPdf(new Uint8Array(readFileSync("report.pdf")));

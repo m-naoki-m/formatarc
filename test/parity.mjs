@@ -239,6 +239,31 @@ check(
     "    src/qiita-zenn-rules.generated.ts and keep the header comment",
 );
 
+// ---- 4. package exports ----------------------------------------------------
+//
+// ここまでのケースは dist を相対パスで読んでいるので、package.json の exports に
+// 誤りがあっても素通りする。publish して初めて ERR_PACKAGE_PATH_NOT_EXPORTED で
+// 落ちるのを防ぐため、自分自身を package 名で import して確かめる (Node の
+// self-reference は exports を定義した package でだけ効く)。
+for (const [specifier, expected] of [
+  ["formatarc", "convert"],
+  ["formatarc/pdf", "convertPdf"],
+  ["formatarc/qiita-zenn", "analyzeQiitaZenn"],
+]) {
+  let keys = null;
+  let err = null;
+  try {
+    keys = Object.keys(await import(specifier));
+  } catch (e) {
+    err = e.code ?? e.message;
+  }
+  check(
+    `exports: ${specifier}`,
+    keys !== null && keys.includes(expected),
+    err ? `import failed: ${err}` : `${expected} not exported (got ${keys?.join(", ")})`,
+  );
+}
+
 // ---- 結果 ------------------------------------------------------------------
 for (const f of failures) {
   console.log(`FAIL ${f.name}\n    ${f.detail}`);
