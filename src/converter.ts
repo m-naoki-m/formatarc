@@ -537,11 +537,6 @@ function findTrailingCommaLine(input: string): number | null {
 }
 
 function formatError(err: unknown, input: string, tool: Tool): string {
-  if (tool === "html-format" && err instanceof Error) {
-    const first = err.message.split("\n")[0].replace(/^SyntaxError:\s*/i, "").trim();
-    return first ? `HTML syntax error: ${first}` : "HTML syntax error.";
-  }
-
   if (err instanceof YAML.YAMLParseError) {
     const line = err.linePos?.[0]?.line;
     return line ? `YAML syntax error near line ${line}.` : "YAML syntax error.";
