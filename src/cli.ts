@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 
 import { readFileSync, existsSync } from "fs";
-import { convert, isPdfTool, isQzTool, isValidTool, PDF_TOOL, type Tool } from "./converter.js";
+import {
+  convert,
+  formatHtml,
+  isHtmlFormatTool,
+  isPdfTool,
+  isQzTool,
+  isValidTool,
+  PDF_TOOL,
+  type Tool,
+} from "./converter.js";
 import { convertPdf } from "./pdf.js";
 import { analyzeQiitaZenn, type QzDirection, type QzFinding } from "./qiita-zenn.js";
 
 const USAGE = `
-formatarc — convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal
+formatarc — convert and format JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal
 
 Usage:
   formatarc <tool> [input]
@@ -23,6 +32,7 @@ Tools:
   markdown-to-csv   Convert Markdown tables to CSV
   markdown-to-html  Convert Markdown to HTML
   html-to-markdown  Convert HTML to Markdown
+  html-format       Pretty-print HTML (uses Prettier)
   pdf-to-markdown   Extract the text of a PDF as Markdown
   qiita-to-zenn     Check a Qiita article for Zenn compatibility
   zenn-to-qiita     Check a Zenn article for Qiita compatibility
@@ -36,6 +46,7 @@ Examples:
   cat table.md | formatarc markdown-to-csv
   cat README.md | formatarc markdown-to-html
   cat page.html | formatarc html-to-markdown
+  cat page.html | formatarc html-format
   formatarc pdf-to-markdown report.pdf
   cat report.pdf | formatarc pdf-to-markdown
   formatarc qiita-to-zenn article.md > converted.md
@@ -185,7 +196,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!isValidTool(toolArg) && !isQzTool(toolArg)) {
+  if (!isValidTool(toolArg) && !isQzTool(toolArg) && !isHtmlFormatTool(toolArg)) {
     console.error(`Unknown tool: ${toolArg}\n`);
     fail(USAGE);
   }
@@ -204,6 +215,13 @@ async function main(): Promise<void> {
   } else {
     console.error("No input provided. Pass a string, a file path, or pipe from stdin.\n");
     fail(USAGE);
+  }
+
+  if (isHtmlFormatTool(toolArg)) {
+    const result = await formatHtml(input);
+    if (result.error) fail(result.error);
+    process.stdout.write(result.output);
+    return;
   }
 
   if (isQzTool(toolArg)) {

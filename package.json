@@ -1,7 +1,7 @@
 {
   "name": "formatarc",
-  "version": "0.4.0",
-  "description": "Convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal, and check Qiita / Zenn article compatibility. Browser-based version at formatarc.com.",
+  "version": "0.5.0",
+  "description": "Convert and format JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal, and check Qiita / Zenn article compatibility. Browser-based version at formatarc.com.",
   "keywords": [
     "json",
     "yaml",
@@ -16,6 +16,7 @@
     "csv-to-markdown",
     "markdown-to-html",
     "html-to-markdown",
+    "html-formatter",
     "pdf",
     "pdf-to-markdown",
     "json-to-csv",
@@ -69,6 +70,7 @@
     "marked": "^18.0.1",
     "papaparse": "^5.5.2",
     "pdfjs-dist": "^6.2.108",
+    "prettier": "^3.9.6",
     "turndown": "^7.2.4",
     "yaml": "^2.8.1"
   },

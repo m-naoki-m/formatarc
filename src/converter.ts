@@ -62,11 +62,51 @@ export function isQzTool(value: string): boolean {
   return (QZ_TOOLS as readonly string[]).includes(value);
 }
 
+/**
+ * HTML の整形。prettier 3 は非同期で、同期の convert() には乗らないので別に持つ
+ * (PDF / QZ と同じ扱い)。web 版の html-formatter と同じく standalone +
+ * plugins/html を使い、plugins/flow は html パーサからしか使わないので引き込まない。
+ */
+export const HTML_FORMAT_TOOL = "html-format";
+
+export function isHtmlFormatTool(value: string): boolean {
+  return value === HTML_FORMAT_TOOL;
+}
+
+export async function formatHtml(input: string): Promise<ConvertResult> {
+  if (!input.trim()) {
+    return { output: "", error: "Input is empty." };
+  }
+
+  try {
+    const [{ format }, htmlPlugin] = await Promise.all([
+      import("prettier/standalone"),
+      import("prettier/plugins/html"),
+    ]);
+    const output = await format(input, {
+      parser: "html",
+      plugins: [htmlPlugin],
+      embeddedLanguageFormatting: "off",
+    });
+    return { output: output.endsWith("\n") ? output : `${output}\n`, error: "" };
+  } catch (err) {
+    const first =
+      err instanceof Error
+        ? err.message.split("\n")[0].replace(/^SyntaxError:\s*/i, "").trim()
+        : "";
+    return { output: "", error: first ? `HTML syntax error: ${first}` : "HTML syntax error." };
+  }
+}
+
 export function convert(tool: Tool, input: string): ConvertResult {
   if (!input.trim()) {
     return { output: "", error: "Input is empty." };
   }
 
+  return runConvert(tool, input);
+}
+
+function runConvert(tool: Tool, input: string): ConvertResult {
   try {
     switch (tool) {
       case "json-format":
@@ -497,6 +537,11 @@ function findTrailingCommaLine(input: string): number | null {
 }
 
 function formatError(err: unknown, input: string, tool: Tool): string {
+  if (tool === "html-format" && err instanceof Error) {
+    const first = err.message.split("\n")[0].replace(/^SyntaxError:\s*/i, "").trim();
+    return first ? `HTML syntax error: ${first}` : "HTML syntax error.";
+  }
+
   if (err instanceof YAML.YAMLParseError) {
     const line = err.linePos?.[0]?.line;
     return line ? `YAML syntax error near line ${line}.` : "YAML syntax error.";

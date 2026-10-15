@@ -1,6 +1,6 @@
 # formatarc
 
-Convert JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal, and check whether a Qiita or Zenn article survives the move to the other platform — your data never leaves your machine. No config, no telemetry, no upload.
+Convert and format JSON, YAML, CSV, Markdown, HTML, and PDF from the terminal, and check whether a Qiita or Zenn article survives the move to the other platform — your data never leaves your machine. No config, no telemetry, no upload.
 
 [![npm version](https://img.shields.io/npm/v/formatarc.svg)](https://www.npmjs.com/package/formatarc)
 [![license: MIT](https://img.shields.io/npm/l/formatarc.svg)](https://github.com/m-naoki-m/formatarc/blob/main/LICENSE)
@@ -72,6 +72,7 @@ cat file | formatarc <tool>
 | `markdown-to-csv` | Convert Markdown (GFM) tables to CSV |
 | `markdown-to-html` | Convert Markdown to HTML |
 | `html-to-markdown` | Convert HTML to Markdown |
+| `html-format` | Pretty-print HTML (uses Prettier) |
 | `pdf-to-markdown` | Extract the text of a PDF as Markdown |
 | `qiita-to-zenn` | Check a Qiita article for Zenn compatibility |
 | `zenn-to-qiita` | Check a Zenn article for Qiita compatibility |
@@ -116,6 +117,7 @@ published. 21 rules are that shape, which is why the report exists at all.
 The converted Markdown goes to **stdout** and the report to **stderr**, so
 `formatarc qiita-to-zenn article.md > converted.md` gives you a clean article
 and leaves the report on screen.
+| `html-format` | Pretty-print HTML (uses Prettier) |
 
 ### Examples
 
@@ -239,6 +241,12 @@ for f in $(git diff --cached --name-only --diff-filter=ACM | grep '\.json$'); do
 done
 ```
 
+Format HTML from a file or stdin:
+
+```bash
+cat page.html | formatarc html-format
+```
+
 ## Programmatic API
 
 ```typescript
@@ -253,10 +261,23 @@ console.log(result.output);
 
 ### `convert(tool, input)`
 
-Returns `{ output: string, error: string }`.
+Returns `{ output: string, error: string }` for every tool except `html-format`
+(that one has its own entry point, since Prettier is async).
 
 - `output` — the converted result (empty string on error)
 - `error` — error message (empty string on success)
+
+### `formatHtml(input)`
+
+`html-format` does not go through `convert()`: Prettier is async and `convert()`
+is synchronous. Returns a promise of the same `{ output, error }` shape.
+
+```typescript
+import { formatHtml } from "formatarc";
+
+const result = await formatHtml("<div><p>Hi</p></div>");
+console.log(result.output);
+```
 
 ### `convertPdf(bytes)`
 
@@ -310,6 +331,7 @@ For a browser-based experience with no signup and no data upload:
 
 - JSON Formatter, YAML ↔ JSON, CSV ↔ JSON
 - CSV ↔ Markdown, Markdown ↔ HTML, PDF → Markdown
+- HTML Formatter (Prettier)
 - Qiita / Zenn compatibility check
 - Runs entirely in the browser
 - Multilingual (English, Japanese, Spanish, Portuguese, Korean, Chinese)
