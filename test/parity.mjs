@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliRoot = path.resolve(here, "..");
-const webRoot = path.resolve(cliRoot, "../SimpleDataConverterWeb");
+const webRoot = process.env.FORMATARC_WEB_ROOT
+  ? path.resolve(process.env.FORMATARC_WEB_ROOT)
+  : path.resolve(cliRoot, "../SimpleDataConverterWeb");
 
 if (!existsSync(path.join(webRoot, "lib/tooling.ts"))) {
   console.log(`skipped: ${webRoot} not found (the formatarc.com repo is not checked out here)`);
@@ -126,6 +128,28 @@ for (const [slug, inputs] of Object.entries(CASES)) {
         `    web.error=${JSON.stringify(w.error)}\n    cli.error=${JSON.stringify(c.error)}`,
     );
   }
+}
+
+// ---- 1b. html-formatter (非同期) ------------------------------------------
+//
+// Web 側は html-formatter だけ別関数 (runHtmlFormatter) で非同期。CLI 側の
+// formatHtml と突き合わせる。
+const HTML_CASES = [
+  "<div><p>Hello</p><span>World</span></div>",
+  '<section class="a"><h1>Title</h1><p>Body<br>text</p></section>',
+  "<div><p>unclosed</div>",
+  "",
+];
+
+for (const [i, input] of HTML_CASES.entries()) {
+  const w = await web.runHtmlFormatter(input, "en");
+  const c = await cli.formatHtml(input);
+  check(
+    `formatHtml[${i}]`,
+    w.output === c.output && Boolean(w.error) === Boolean(c.error),
+    `web.output=${JSON.stringify(w.output)}\n    cli.output=${JSON.stringify(c.output)}\n` +
+      `    web.error=${JSON.stringify(w.error)}\n    cli.error=${JSON.stringify(c.error)}`,
+  );
 }
 
 // ---- 2. Qiita / Zenn 互換チェック -----------------------------------------
